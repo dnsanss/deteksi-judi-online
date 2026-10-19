@@ -108,7 +108,6 @@
             <!-- Hero -->
             <section class="text-center max-w-3xl mx-auto mb-12">
 
-
                 <div class="inline-flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-300">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                         <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.6V8.4l6.2 3.6-6.2 3.6Z" />
@@ -158,7 +157,11 @@
 
                 <div class="panel rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl shadow-black/20">
 
-                    <form id="detectionForm" class="p-5 sm:p-8">
+                    <form id="detectionForm"
+                        action="{{ route('deteksi.youtube.detect') }}"
+                        method="POST"
+                        class="p-5 sm:p-8">
+                        @csrf
 
                         <div class="mb-4 rounded-xl border border-slate-700 bg-slate-800/70 p-4">
                             <div class="flex items-start gap-3">
@@ -190,10 +193,9 @@
                                 name="comment"
                                 rows="6"
                                 maxlength="5000"
-                                placeholder="Tempelkan komentar di sini...
-Contoh: Daftar sekarang, bonus saldo untuk member baru!"
-                                class="w-full resize-y min-h-[170px] rounded-xl border border-slate-700/80 bg-[#0a1020] px-4 py-4 text-sm leading-7 text-slate-200 placeholder:text-slate-600 focus:border-teal-400/60 focus:ring-2 focus:ring-teal-400/10 transition"
-                                required></textarea>
+                                class="w-full rounded-xl border border-white/10 bg-[#111827] px-4 py-3 text-white placeholder:text-gray-500 focus:border-teal-400 focus:outline-none"
+                                placeholder="Masukkan komentar di sini..."
+                                required>{{ old('comment', $inputComment ?? '') }}</textarea>
 
                             <div class="absolute bottom-3 right-4 text-xs text-slate-600">
                                 <span id="charCount">0</span>/5000
@@ -250,19 +252,19 @@ Contoh: Daftar sekarang, bonus saldo untuk member baru!"
                             Hasil analisis
                         </div>
 
-                        <div id="resultLabel" class="font-bold text-lg"></div>
+                        <div id="placeholderResultLabel" class="font-bold text-lg"></div>
 
-                        <p id="resultDescription"
+                        <p id="placeholderResultDescription"
                             class="text-sm text-slate-400 mt-2 leading-6"></p>
 
                         <div class="mt-5">
                             <div class="flex items-center justify-between text-xs mb-2">
                                 <span class="text-slate-400">Skor prediksi</span>
-                                <span id="resultScore" class="font-semibold text-slate-300">—</span>
+                                <span id="placeholderResultScore" class="font-semibold text-slate-300">—</span>
                             </div>
 
                             <div class="h-2 rounded-full bg-slate-800 overflow-hidden">
-                                <div id="resultBar"
+                                <div id="placeholderResultBar"
                                     class="h-full rounded-full transition-all duration-500"
                                     style="width: 0%">
                                 </div>
@@ -359,38 +361,450 @@ Contoh: Daftar sekarang, bonus saldo untuk member baru!"
 
     </div>
 
+
+    <!-- Detection Result Modal -->
+    <div
+        id="detectionModal"
+        class="fixed inset-0 z-50 hidden items-center justify-center overflow-y-auto bg-[#020617]/85 px-4 py-8 backdrop-blur-md"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modalTitle">
+        <div
+            class="panel relative my-auto w-full max-w-xl overflow-hidden rounded-2xl border border-teal-400/20 shadow-2xl shadow-black/50">
+            <!-- Top accent -->
+            <div class="accent absolute left-0 top-0 h-1 w-full"></div>
+
+            <div class="p-6 sm:p-8">
+
+                <!-- Modal header -->
+                <div class="flex items-start justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div
+                            id="modalIcon"
+                            class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-400/10 text-teal-300">
+                            <svg
+                                id="loadingIcon"
+                                class="h-6 w-6 animate-spin"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24">
+                                <circle
+                                    class="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    stroke-width="4" />
+                                <path
+                                    class="opacity-90"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4z" />
+                            </svg>
+
+                            <svg
+                                id="resultIcon"
+                                class="hidden h-6 w-6"
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M20 6 9 17l-5-5" />
+                            </svg>
+                        </div>
+
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-teal-300">
+                                FraudGuard Analysis
+                            </p>
+                            <h2 id="modalTitle" class="mt-1 text-xl font-bold text-white">
+                                Menganalisis Komentar
+                            </h2>
+                        </div>
+                    </div>
+
+                    <button
+                        id="closeModal"
+                        type="button"
+                        aria-label="Tutup popup"
+                        class="rounded-lg p-2 text-slate-400 transition hover:bg-white/10 hover:text-white">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="21"
+                            height="21"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round">
+                            <path d="m18 6-12 12" />
+                            <path d="m6 6 12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Loading content -->
+                <div id="loadingContent" class="py-9 text-center">
+                    <div class="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-teal-400/20 bg-teal-400/5">
+                        <div class="h-12 w-12 animate-spin rounded-full border-4 border-slate-700 border-t-teal-400"></div>
+                    </div>
+
+                    <p class="text-base font-semibold text-white">
+                        Memeriksa pola komentar
+                    </p>
+                    <p class="mt-2 text-sm leading-6 text-slate-400">
+                        Sistem sedang membandingkan komentar dengan dataset YouTube.
+                        Mohon tunggu sebentar.
+                    </p>
+
+                    <div class="mt-7">
+                        <div class="mb-2 flex justify-between text-xs">
+                            <span class="text-slate-500">Proses analisis</span>
+                            <span id="loadingPercent" class="font-semibold text-teal-300">0%</span>
+                        </div>
+
+                        <div class="h-2 overflow-hidden rounded-full bg-slate-800">
+                            <div
+                                id="loadingBar"
+                                class="h-full rounded-full bg-gradient-to-r from-teal-400 to-cyan-400 transition-[width] duration-300"
+                                style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Result content -->
+                <div id="resultContent" class="hidden pt-7">
+
+                    <div class="rounded-xl border border-white/[0.07] bg-[#0a1020] p-5">
+                        <p class="text-xs uppercase tracking-[0.18em] text-slate-500">
+                            Hasil analisis
+                        </p>
+
+                        <h3
+                            id="resultLabel"
+                            class="mt-3 text-xl font-extrabold leading-7 text-white"></h3>
+
+                        <p
+                            id="resultDescription"
+                            class="mt-2 text-sm leading-6 text-slate-400"></p>
+
+
+                        <div class="mt-7">
+                            <div class="mb-3 flex items-end justify-between gap-3">
+                                <div>
+                                    <p class="text-xs text-slate-500">
+                                        Kemiripan teks tertinggi
+                                    </p>
+
+                                    <p
+                                        id="resultScore"
+                                        class="mt-1 text-4xl font-extrabold tabular-nums text-teal-300"
+                                        aria-live="polite">0.00%</p>
+                                </div>
+
+                                <span
+                                    id="scoreBadge"
+                                    class="rounded-lg border border-teal-400/20 bg-teal-400/10 px-3 py-2 text-xs font-semibold text-teal-300">Cosine Similarity</span>
+                            </div>
+
+                            <div
+                                class="h-3 overflow-hidden rounded-full bg-slate-800"
+                                role="progressbar"
+                                aria-label="Persentase kemiripan teks"
+                                aria-valuemin="0"
+                                aria-valuemax="100"
+                                aria-valuenow="0"
+                                id="resultProgress">
+                                <div
+                                    id="resultBar"
+                                    class="h-full rounded-full bg-gradient-to-r from-teal-400 to-cyan-400"
+                                    style="width: 0%; transition: width 1.2s ease-out"></div>
+                            </div>
+
+                            <div class="mt-2 flex justify-between text-[10px] text-slate-600">
+                                <span>0%</span>
+                                <span>100%</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="mt-5">
+                        <p class="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
+                            Komentar dataset terdekat
+                        </p>
+                        <div class="rounded-xl border border-slate-700/70 bg-[#0a1020] p-4">
+                            <p
+                                id="matchedComment"
+                                class="whitespace-pre-wrap break-words text-sm leading-6 text-slate-300"></p>
+
+                            <p
+                                id="matchedLabel"
+                                class="mt-3 text-xs text-slate-500"></p>
+                        </div>
+                    </div>
+
+                    <p class="mt-5 text-xs leading-5 text-slate-500">
+                        Skor menunjukkan kemiripan teks dengan komentar dataset,
+                        bukan probabilitas bahwa komentar tersebut merupakan promosi judi online.
+                        Hasil bergantung pada data dan label komentar terdekat.
+                    </p>
+                </div>
+
+                <!-- Error content -->
+                <div id="errorContent" class="hidden py-8">
+                    <div class="rounded-xl border border-red-400/20 bg-red-400/5 p-5">
+                        <p class="font-semibold text-red-300">Analisis tidak berhasil</p>
+                        <p id="errorMessage" class="mt-2 text-sm leading-6 text-slate-400"></p>
+                    </div>
+                </div>
+
+                <!-- Close button at bottom -->
+                <div id="modalFooter" class="hidden mt-7">
+                    <button
+                        id="closeModalBottom"
+                        type="button"
+                        class="accent w-full rounded-xl py-3.5 font-bold text-slate-950 transition hover:brightness-110">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <script>
-        const form = document.getElementById('detectionForm');
-        const comment = document.getElementById('comment');
-        const charCount = document.getElementById('charCount');
-        const formMessage = document.getElementById('formMessage');
-        const resultPanel = document.getElementById('resultPanel');
-        const detectButton = document.getElementById('detectButton');
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('detectionForm');
+            const modal = document.getElementById('detectionModal');
+            const textarea = document.getElementById('comment');
+            const button = document.getElementById('detectButton');
 
-        comment.addEventListener('input', () => {
-            charCount.textContent = comment.value.length;
-        });
-
-        form.addEventListener('submit', (event) => {
-            event.preventDefault();
-
-            const text = comment.value.trim();
-
-            resultPanel.classList.add('hidden');
-            formMessage.classList.add('hidden');
-
-            if (!text) {
-                formMessage.textContent = 'Silakan masukkan komentar terlebih dahulu.';
-                formMessage.className =
-                    'mt-4 rounded-xl border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-sm text-amber-300';
+            if (!form || !modal || !textarea || !button) {
+                console.error('Elemen deteksi tidak ditemukan.', {
+                    form: !!form,
+                    modal: !!modal,
+                    textarea: !!textarea,
+                    button: !!button
+                });
                 return;
             }
 
-            formMessage.textContent =
-                'Antarmuka berhasil menerima komentar. Model machine learning belum dihubungkan.';
+            const loading = document.getElementById('loadingContent');
+            const result = document.getElementById('resultContent');
+            const error = document.getElementById('errorContent');
 
-            formMessage.className =
-                'mt-4 rounded-xl border border-teal-400/20 bg-teal-400/5 px-4 py-3 text-sm text-teal-300';
+            const scoreElement = document.getElementById('resultScore');
+            const bar = document.getElementById('resultBar');
+            const label = document.getElementById('resultLabel');
+            const description = document.getElementById('resultDescription');
+            const matchedComment = document.getElementById('matchedComment');
+            const matchedLabel = document.getElementById('matchedLabel');
+            const errorMessage = document.getElementById('errorMessage');
+
+            // Mendukung beberapa nama ID spinner, jika elemen tersebut tersedia.
+            const resultLoading = document.getElementById('resultLoading');
+            const loadingIcon = document.getElementById('loadingIcon');
+
+            const categories = {
+                mirip_promosi_judi_online: {
+                    title: 'Mirip Promosi Judi Online',
+                    description: 'Komentar memiliki kemiripan dengan komentar promosi judi online dalam dataset.'
+                },
+                mirip_bukan_promosi: {
+                    title: 'Mirip Bukan Promosi',
+                    description: 'Komentar lebih mirip dengan komentar nonpromosi dalam dataset.'
+                },
+                tidak_cukup_mirip: {
+                    title: 'Kemiripan Rendah',
+                    description: 'Kemiripan belum cukup untuk menentukan kategori berdasarkan ambang yang digunakan.'
+                },
+                tidak_ada_kata_cocok: {
+                    title: 'Tidak Ada Kata yang Cocok',
+                    description: 'Tidak ditemukan kata yang sama antara komentar dan dataset.'
+                },
+                dataset_kosong: {
+                    title: 'Dataset Kosong',
+                    description: 'Dataset YouTube belum berisi data yang dapat dibandingkan.'
+                },
+                input_kosong: {
+                    title: 'Komentar Kosong',
+                    description: 'Masukkan komentar terlebih dahulu.'
+                }
+            };
+
+            function show(element) {
+                if (element) element.classList.remove('hidden');
+            }
+
+            function hide(element) {
+                if (element) element.classList.add('hidden');
+            }
+
+            function resetResult() {
+                hide(result);
+                hide(error);
+                show(loading);
+
+                // Reset visualisasi sebelum permintaan baru.
+                if (scoreElement) scoreElement.textContent = '0.00%';
+                if (bar) bar.style.width = '0%';
+
+                hide(resultLoading);
+            }
+
+            form.addEventListener('submit', async (event) => {
+                // Mencegah browser berpindah ke halaman POST.
+                event.preventDefault();
+
+                const comment = textarea.value.trim();
+
+                if (!comment) {
+                    textarea.focus();
+                    return;
+                }
+
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+
+                resetResult();
+                button.disabled = true;
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: new FormData(form)
+                    });
+
+                    const data = await response.json();
+
+                    console.log('Respons deteksi:', data);
+
+                    if (!response.ok) {
+                        const messages = data.errors ?
+                            Object.values(data.errors).flat().join('\n') :
+                            (data.message || 'Deteksi gagal dilakukan.');
+
+                        throw new Error(messages);
+                    }
+
+                    /*
+                     * Terima similarity dalam skala 0–1 atau 0–100.
+                     * Jika service Anda sudah mengembalikan persentase,
+                     * nilainya tidak dikalikan lagi.
+                     */
+                    const rawScore = Number(data.similarity);
+
+                    if (!Number.isFinite(rawScore)) {
+                        throw new Error(
+                            'Nilai similarity tidak ditemukan atau bukan angka. Periksa respons Laravel.'
+                        );
+                    }
+
+                    const score = Math.min(
+                        100,
+                        Math.max(0, rawScore <= 1 ? rawScore * 100 : rawScore)
+                    );
+
+                    console.log('Persentase kemiripan:', score);
+
+                    // Isi hasil analisis.
+                    const category = categories[data.category] || {
+                        title: 'Hasil Deteksi',
+                        description: 'Kemiripan komentar berhasil dihitung.'
+                    };
+
+                    if (label) label.textContent = category.title;
+
+                    if (description) {
+                        description.textContent = category.description;
+                    }
+
+                    if (matchedComment) {
+                        matchedComment.textContent =
+                            data.matched_comment || 'Tidak ada komentar pembanding.';
+                    }
+
+                    if (matchedLabel) {
+                        const matched = data.matched_label;
+
+                        matchedLabel.textContent =
+                            matched === 1 || matched === '1' ?
+                            'Promosi judi online' :
+                            matched === 0 || matched === '0' ?
+                            'Bukan promosi' :
+                            'Tidak tersedia';
+                    }
+
+                    // Hentikan loading sebelum hasil ditampilkan.
+                    hide(loading);
+                    hide(loadingIcon);
+                    hide(resultLoading);
+                    hide(error);
+
+                    // Tampilkan panel hasil.
+                    show(result);
+
+                    // Pastikan hasil memiliki nilai awal yang terlihat.
+                    if (scoreElement) {
+                        scoreElement.textContent = `${score.toFixed(2)}%`;
+                    }
+
+                    if (bar) {
+                        bar.style.width = `${score}%`;
+                    }
+
+                } catch (err) {
+                    console.error('Deteksi gagal:', err);
+
+                    hide(loading);
+                    hide(loadingIcon);
+                    hide(resultLoading);
+                    hide(result);
+
+                    show(error);
+
+                    if (errorMessage) {
+                        errorMessage.textContent =
+                            err.message || 'Terjadi kesalahan saat mendeteksi komentar.';
+                    }
+                } finally {
+                    button.disabled = false;
+                }
+            });
+
+            function closeModal() {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+
+            document.getElementById('closeModal')
+                ?.addEventListener('click', closeModal);
+
+            document.getElementById('closeModalBottom')
+                ?.addEventListener('click', closeModal);
+
+            modal.addEventListener('click', (event) => {
+                if (event.target === modal) closeModal();
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (
+                    event.key === 'Escape' &&
+                    !modal.classList.contains('hidden')
+                ) {
+                    closeModal();
+                }
+            });
         });
     </script>
 
