@@ -365,7 +365,7 @@
     <!-- Detection Result Modal -->
     <div
         id="detectionModal"
-        class="fixed inset-0 z-50 hidden items-center justify-center overflow-y-auto bg-[#020617]/85 px-4 py-8 backdrop-blur-md"
+        class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[#020617]/85 px-4 py-8 backdrop-blur-md"
         role="dialog"
         aria-modal="true"
         aria-labelledby="modalTitle">
